@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConnectCase</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f7f8fa;--bg3:#f0f2f5;
+  --text:#111111;--text2:#555555;--text3:#888888;
+  --border:#e2e4e8;--border2:#c8ccd4;
+  --blue:#185FA5;--blue-light:#E6F1FB;--blue-dark:#0C447C;
+  --green:#0F6E56;--green-light:#E1F5EE;--green-dark:#085041;
+  --amber:#854F0B;--amber-light:#FAEEDA;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1a1a;--bg2:#242424;--bg3:#2e2e2e;
+    --text:#f0f0f0;--text2:#aaaaaa;--text3:#777777;
+    --border:#333333;--border2:#444444;
+    --blue-light:#0d2d4a;--blue-dark:#7ab3e0;
+    --green-light:#0a2e26;--green-dark:#5ab99e;
+    --amber-light:#2d1f05;--red-light:#2d1010;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;font-size:15px}
+.app{max-width:680px;margin:0 auto;padding:1rem;min-height:100vh}
+
+/* Auth */
+.screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;gap:1.5rem;padding:2rem 1rem;text-align:center}
+.logo{width:56px;height:56px;background:var(--blue);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.logo svg{width:30px;height:30px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.app-name{font-size:24px;font-weight:700;letter-spacing:-.3px}
+.app-tagline{font-size:14px;color:var(--text2);max-width:280px;line-height:1.6}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:380px}
+.role-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem 1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.role-card:hover,.role-card:focus{border-color:var(--blue);outline:none;transform:translateY(-1px);box-shadow:0 4px 12px rgba(24,95,165,.12)}
+.role-card:active{transform:translateY(0)}
+.role-icon{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.ri-w{background:var(--blue-light);color:var(--blue)}
+.ri-c{background:var(--green-light);color:var(--green)}
+.role-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.role-label{font-size:15px;font-weight:600}
+.role-desc{font-size:12px;color:var(--text2);line-height:1.4}
+.sync-badge{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:#39b96a;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* PIN */
+.pin-wrap{width:100%;max-width:260px}
+.pin-title{font-size:18px;font-weight:600;margin-bottom:6px}
+.pin-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem;line-height:1.5}
+.pin-dots{display:flex;justify-content:center;gap:16px;margin-bottom:1.75rem}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:all .15s}
+.pin-dot.filled{background:var(--blue);border-color:var(--blue)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pin-key{height:56px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);font-size:20px;font-weight:500;cursor:pointer;color:var(--text);transition:all .1s;-webkit-tap-highlight-color:transparent}
+.pin-key:hover{background:var(--bg2);border-color:var(--border2)}
+.pin-key:active{transform:scale(.94);background:var(--bg3)}
+.pin-key.del{font-size:18px;color:var(--text2)}
+.pin-error{color:var(--red);font-size:13px;margin-top:10px;min-height:20px}
+.pin-back{font-size:13px;color:var(--text2);cursor:pointer;margin-top:1rem;padding:4px}
+.pin-back:hover{color:var(--blue);text-decoration:underline}
+
+/* Header */
+.header{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:.875rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-logo{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hdr-logo svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.hdr-name{font-size:15px;font-weight:600}
+.hdr-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+.badge-w{background:var(--blue-light);color:var(--blue-dark)}
+.badge-c{background:var(--green-light);color:var(--green-dark)}
+.hdr-right{display:flex;align-items:center;gap:6px}
+.icon-btn{width:34px;height:34px;border:1px solid var(--border);border-radius:var(--radius);background:none;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.icon-btn:hover{background:var(--bg2);color:var(--text);border-color:var(--border2)}
+.icon-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Client bar */
+.client-bar{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.625rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px}
+.client-bar label{font-size:12px;color:var(--text2);white-space:nowrap;font-weight:500}
+.client-bar select{flex:1;border:none;background:transparent;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;outline:none}
+.add-btn{font-size:12px;padding:5px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg2);cursor:pointer;color:var(--text);white-space:nowrap;font-weight:500}
+.add-btn:hover{border-color:var(--border2);background:var(--bg3)}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:4px;margin-bottom:1rem;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{flex:1;min-width:0;font-size:12px;font-weight:500;padding:.5rem .5rem;cursor:pointer;border:none;border-radius:var(--radius);background:none;color:var(--text2);transition:all .15s;white-space:nowrap;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;gap:4px}
+.tab svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.tab.active{background:var(--blue);color:#fff}
+.tab:hover:not(.active){background:var(--bg2);color:var(--text)}
+
+/* Cards */
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.125rem;margin-bottom:12px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem}
+.card-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px;color:var(--text)}
+.card-title svg{width:16px;height:16px;fill:none;stroke:var(--blue);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Stats */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-box{background:var(--bg2);border-radius:var(--radius);padding:.875rem 1rem;border:1px solid var(--border)}
+.stat-lbl{font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.4px}
+.stat-val{font-size:24px;font-weight:700;line-height:1}
+.stat-val.blue{color:var(--blue)}.stat-val.green{color:var(--green)}
+.stat-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:8px 0 5px}
+.stat-fill{height:100%;border-radius:3px}
+.fill-b{background:var(--blue)}.fill-g{background:var(--green)}
+.stat-sub{font-size:11px;color:var(--text3)}
+
+/* Appointments */
+.appt-item{display:flex;align-items:flex-start;gap:12px;padding:.875rem 0;border-bottom:1px solid var(--border)}
+.appt-item:last-child{border-bottom:none;padding-bottom:0}
+.date-box{min-width:46px;height:52px;background:var(--blue-light);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.date-day{font-size:20px;font-weight:700;color:var(--blue-dark);line-height:1}
+.date-mon{font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.appt-meta{flex:1;min-width:0}
+.appt-time{font-size:13px;font-weight:600}
+.appt-type{font-size:12px;color:var(--text2);margin-top:2px}
+.appt-note-text{font-size:12px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.appt-actions{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.pill{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.pill-up{background:var(--blue-light);color:var(--blue-dark)}
+.pill-today{background:var(--green-light);color:var(--green-dark)}
+.pill-past{background:var(--bg3);color:var(--text3)}
+.pill-cancelled{background:var(--red-light);color:var(--red)}
+
+/* Buttons */
+.btn{font-size:12px;padding:5px 11px;border-radius:var(--radius);cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-weight:500;transition:all .15s;-webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{border-color:var(--border2);background:var(--bg3)}
+.btn.danger{color:var(--red);border-color:#f09595}.btn.danger:hover{background:var(--red-light)}
+.btn.info{color:var(--blue);border-color:#b5d4f4}.btn.info:hover{background:var(--blue-light)}
+.btn-primary{background:var(--blue);color:#fff;border:none;border-radius:var(--radius);padding:.65rem 1.1rem;font-size:14px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:background .15s;-webkit-tap-highlight-color:transparent}
+.btn-primary:hover{background:var(--blue-dark)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn svg,.btn-primary svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* Notes */
+.note-thread{display:flex;flex-direction:column;gap:10px;margin-bottom:1rem}
+.note-bubble{padding:.625rem .875rem;border-radius:var(--radius);font-size:13px;line-height:1.6;max-width:82%}
+.nb-w{background:var(--blue-light);align-self:flex-start}
+.nb-c{background:var(--green-light);align-self:flex-end}
+.nb-sys{background:var(--bg2);align-self:center;font-size:12px;color:var(--text2);font-style:italic;max-width:100%;text-align:center;border:1px solid var(--border)}
+.note-sender{font-size:11px;font-weight:700;margin-bottom:2px}
+.ns-w{color:var(--blue-dark)}.ns-c{color:var(--green-dark)}
+.note-ts{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* History */
+.hist-item{display:flex;gap:12px;padding:.625rem 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:9px;height:9px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.hd-blue{background:var(--blue)}.hd-green{background:var(--green)}.hd-amber{background:#BA7517}.hd-red{background:#E24B4A}.hd-gray{background:#888}
+.hist-text{font-size:13px;flex:1;line-height:1.5}
+.hist-ts{font-size:11px;color:var(--text3);margin-top:2px}
+.filter-row{display:flex;gap:5px;margin-bottom:.875rem;flex-wrap:wrap}
+.chip{font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text2);font-weight:500;transition:all .15s}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* Forms */
+.form-row{margin-bottom:14px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-label{font-size:12px;color:var(--text2);margin-bottom:5px;display:block;font-weight:500}
+.form-input{width:100%;padding:.575rem .75rem;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;background:var(--bg);color:var(--text);transition:border-color .15s;font-family:inherit}
+.form-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+textarea.form-input{resize:vertical;min-height:80px;line-height:1.5}
+select.form-input{cursor:pointer}
+
+/* Alerts */
+.alert{border-radius:var(--radius);padding:.625rem .875rem;font-size:13px;display:flex;align-items:flex-start;gap:8px;margin-bottom:12px;line-height:1.5}
+.alert svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;margin-top:1px}
+.alert-amber{background:var(--amber-light);border:1px solid #EF9F27;color:var(--amber)}
+.alert-blue{background:var(--blue-light);border:1px solid #85B7EB;color:var(--blue-dark)}
+.alert-green{background:var(--green-light);border:1px solid #5DCAA5;color:var(--green-dark)}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem;backdrop-filter:blur(2px)}
+.modal{background:var(--bg);border-radius:var(--radius-lg);padding:1.375rem;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:1rem}
+.modal-actions{display:flex;gap:8px;margin-top:1rem;justify-content:flex-end}
+.divider{height:1px;background:var(--border);margin:1rem 0}
+
+/* Misc */
+.empty{text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px;line-height:1.6}
+.empty svg{width:36px;height:36px;fill:none;stroke:var(--border2);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;display:block;margin:0 auto .75rem}
+.section-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px}
+.loading{text-align:center;padding:3rem;color:var(--text2);font-size:14px}
+.webhook-info{font-size:12px;color:var(--text2);line-height:1.6;margin-top:4px}
+.toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--blue);color:#fff;padding:.625rem 1rem;border-radius:var(--radius);font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:slideIn .2s ease}
+@keyframes slideIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* Responsive */
+@media(max-width:480px){
+  .app{padding:.75rem}
+  .form-row-2{grid-template-columns:1fr}
+  .appt-actions{flex-direction:column}
+  .stat-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="loading">Loading ConnectCase...</div>
+</div>
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ── CONFIG ──
+const SUPABASE_URL = 'https://nylmznlzmmgsgaallvil.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_dIBYze5cMvKqOxEaXd5qvQ_Hdg74D4C';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── STATE ──
+let role = null, activeTab = 'dashboard', histFilter = 'all';
+let pinInput = '', pinMode = '', pinSetStep = 0, pinFirst = '';
+let appState = null;
+
+const DEFAULT_STATE = {
+  pins: { worker: null, client: null },
+  clients: [
+    {
+      id: 'c1', name: 'Jamie Kowalski', email: '', phone: '',
+      mhpTotal: 10, mhpUsed: 3, fineTotal: 2400, finePaid: 960,
+      appointments: [
+        { id: 'a1', date: '2026-07-10', time: '10:00', type: 'Mental Health Plan', status: 'upcoming', notes: '' },
+        { id: 'a2', date: '2026-07-31', time: '14:30', type: 'Mental Health Plan', status: 'upcoming', notes: '' }
+      ],
+      notes: [
+        { id: 'n1', role: 'worker', text: 'Please bring your GP referral to the next session.', ts: '2026-06-12T09:15:00' },
+        { id: 'n2', role: 'client', text: 'I wanted to discuss my anxiety around returning to work.', ts: '2026-06-14T18:30:00' }
+      ],
+      history: [
+        { id: 'h1', type: 'appointment', color: 'blue', text: 'Appointment scheduled: Mental Health Plan on 10 Jul 2026 at 10:00', ts: '2026-06-01T10:00:00' },
+        { id: 'h2', type: 'session', color: 'green', text: 'Session completed — MHP session 3 of 10 used', ts: '2026-06-05T11:00:00' }
+      ]
+    }
+  ],
+  workerName: 'Sarah Chen',
+  webhookUrl: '',
+  activeClientId: 'c1'
+};
+
+// ── SUPABASE LOAD / SAVE ──
+async function loadState() {
+  try {
+    const { data, error } = await sb.from('app_state').select('data').eq('id', 'main').single();
+    if (error || !data) {
+      appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      await saveState();
+    } else {
+      appState = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), data.data);
+    }
+  } catch (e) {
+    appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  }
+}
+
+async function saveState() {
+  try {
+    await sb.from('app_state').upsert({ id: 'main', data: appState, updated_at: new Date().toISOString() });
+  } catch (e) { console.error('Save failed', e); }
+}
+
+// ── REALTIME SYNC ──
+function subscribeRealtime() {
+  sb.channel('app_state_changes')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_state', filter: 'id=eq.main' }, payload => {
+      if (payload.new && payload.new.data) {
+        const incoming = payload.new.data;
+        const myPins = appState.pins;
+        appState = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), incoming);
+        appState.pins = myPins;
+        if (role) renderMain();
+      }
+    })
+    .subscribe();
+}
+
+// ── HELPERS ──
+function client() { return appState.clients.find(c => c.id === appState.activeClientId) || appState.clients[0]; }
+function uid() { return 'x' + Date.now() + Math.random().toString(36).slice(2, 6); }
+function fmtDate(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  return d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+function fmtDateBox(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  return { day: d.getDate(), mon: d.toLocaleDateString('en-AU', { month: 'short' }) };
+}
+function daysUntil(ds, ts) { return Math.ceil((new Date(ds + 'T' + ts) - Date.now()) / 864e5); }
+function fmtTs(ts) { return new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+function addHistory(cl, type, color, text) { cl.history.unshift({ id: uid(), type, color, text, ts: new Date().toISOString() }); }
+
+function toast(msg, color) {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.background = color === 'red' ? 'var(--red)' : color === 'green' ? 'var(--green)' : 'var(--blue)';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ── ICONS (inline SVG strings) ──
+const I = {
+  shield: `<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  briefcase: `<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12"/></svg>`,
+  user: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  calendar: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  message: `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  history: `<svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  dashboard: `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
+  logout: `<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
+  export: `<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+  plus: `<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  send: `<svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`,
+  bell: `<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+  brain: `<svg viewBox="0 0 24 24"><path d="M9.5 2a2.5 2.5 0 0 1 5 0v.5a2.5 2.5 0 0 1-5 0V2z"/><path d="M3 10a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v4a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5v-4z"/></svg>`,
+  receipt: `<svg viewBox="0 0 24 24"><path d="M4 2v20l3-3 3 3 3-3 3 3 3-3V2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>`,
+  alert: `<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  info: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  check: `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
+  copy: `<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  calOff: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="20"/><line x1="16" y1="14" x2="8" y2="20"/></svg>`,
+  msgOff: `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="4" y1="4" x2="20" y2="20"/></svg>`,
+  users: `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  back: `<svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>`,
+};
+
+function icon(name, cls) { return `<span class="${cls||''}">${I[name]||''}</span>`; }
+
+// ── RENDER ROOT ──
+function render() {
+  const app = document.getElementById('app');
+  if (!role) renderLogin(app);
+  else renderMain(app);
+}
+
+// ── LOGIN ──
+function renderLogin(app) {
+  app.innerHTML = `
+  <div class="screen">
+    <div>
+      <div class="logo">${I.shield}</div>
+      <div class="app-name" style="margin-top:12px">ConnectCase</div>
+      <p class="app-tagline" style="margin-top:6px">Victoria's shared case management portal</p>
+    </div>
+    <div class="role-grid">
+      <div class="role-card" onclick="startLogin('worker')" tabindex="0" role="button" onkeydown="if(event.key==='Enter')startLogin('worker')">
+        <div class="role-icon ri-w">${I.briefcase}</div>
+        <div class="role-label">Caseworker</div>
+        <div class="role-desc">Manage clients and sessions</div>
+      </div>
+      <div class="role-card" onclick="startLogin('client')" tabindex="0" role="button" onkeydown="if(event.key==='Enter')startLogin('client')">
+        <div class="role-icon ri-c">${I.user}</div>
+        <div class="role-label">Client</div>
+        <div class="role-desc">View your appointments</div>
+      </div>
+    </div>
+    <div class="sync-badge"><div class="dot"></div>Real-time sync enabled</div>
+  </div>`;
+}
+
+// ── PIN ──
+function startLogin(r) { pinMode = r; pinInput = ''; pinFirst = ''; pinSetStep = 0; renderPin(); }
+
+function renderPin() {
+  const app = document.getElementById('app');
+  const isSet = appState.pins[pinMode] !== null;
+  const label = pinMode === 'worker' ? appState.workerName : 'Client';
+  const title = isSet ? 'Enter your PIN' : (pinSetStep === 0 ? 'Create your PIN' : 'Confirm your PIN');
+  const sub = isSet ? `Welcome back, ${label}` : (pinSetStep === 0 ? `Set a 4-digit PIN to secure your ${pinMode === 'worker' ? 'caseworker' : 'client'} account` : 'Enter the same PIN again to confirm');
+  app.innerHTML = `
+  <div class="screen">
+    <div class="logo" style="background:${pinMode==='worker'?'var(--blue)':'var(--green)'}">${pinMode === 'worker' ? I.briefcase : I.user}</div>
+    <div class="pin-wrap">
+      <div class="pin-title">${title}</div>
+      <div class="pin-sub">${sub}</div>
+      <div class="pin-dots">
+        ${[0,1,2,3].map(i=>`<div class="pin-dot${i<pinInput.length?' filled':''}" id="dot${i}"></div>`).join('')}
+      </div>
+      <div class="pin-pad">
+        ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-key" onclick="pinPress('${n}')">${n}</button>`).join('')}
+        <button class="pin-key" style="visibility:hidden"></button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key del" onclick="pinDel()" aria-label="Delete">←</button>
+      </div>
+      <div class="pin-error" id="pinErr"></div>
+      <div class="pin-back" onclick="renderLogin(document.getElementById('app'))">← Back</div>
+    </div>
+  </div>`;
+}
+
+function pinPress(n) {
+  if (pinInput.length >= 4) return;
+  pinInput += n;
+  updateDots();
+  if (pinInput.length === 4) setTimeout(pinSubmit, 130);
+}
+function pinDel() { pinInput = pinInput.slice(0, -1); updateDots(); }
+function updateDots() {
+  [0,1,2,3].forEach(i => { const d = document.getElementById('dot'+i); if(d) d.className='pin-dot'+(i<pinInput.length?' filled':''); });
+}
+async function pinSubmit() {
+  const isSet = appState.pins[pinMode] !== null;
+  if (isSet) {
+    if (pinInput === appState.pins[pinMode]) { role = pinMode; render(); }
+    else { pinInput=''; updateDots(); const e=document.getElementById('pinErr'); if(e) e.textContent='Incorrect PIN — try again'; }
+  } else {
+    if (pinSetStep === 0) { pinFirst=pinInput; pinInput=''; pinSetStep=1; renderPin(); }
+    else {
+      if (pinInput === pinFirst) {
+        appState.pins[pinMode] = pinInput;
+        await saveState();
+        role = pinMode;
+        render();
+      } else {
+        pinInput=''; pinFirst=''; pinSetStep=0; renderPin();
+        setTimeout(()=>{ const e=document.getElementById('pinErr'); if(e) e.textContent="PINs didn't match — try again"; }, 50);
+      }
+    }
+  }
+}
+
+// ── MAIN SHELL ──
+function renderMain(app) {
+  app = app || document.getElementById('app');
+  const cl = client();
+  const tabs = [
+    { id:'dashboard', icon:'dashboard', label:'Home' },
+    { id:'appointments', icon:'calendar', label:'Appointments' },
+    { id:'notes', icon:'message', label:'Notes' },
+    { id:'history', icon:'history', label:'History' },
+    ...(role==='worker' ? [{ id:'manage', icon:'settings', label:'Manage' }] : [])
+  ];
+  app.innerHTML = `
+  <div class="header">
+    <div class="hdr-left">
+      <div class="hdr-logo">${I.shield}</div>
+      <div>
+        <div class="hdr-name">${role==='worker' ? appState.workerName : cl.name}</div>
+      </div>
+      <span class="hdr-badge ${role==='worker'?'badge-w':'badge-c'}">${role==='worker'?'Caseworker':'Client'}</span>
+    </div>
+    <div class="hdr-right">
+      <div class="sync-badge" style="font-size:11px"><div class="dot"></div></div>
+      <button class="icon-btn" onclick="exportPDF()" title="Export PDF">${I.export}</button>
+      <button class="icon-btn" onclick="doLogout()" title="Sign out">${I.logout}</button>
+    </div>
+  </div>
+  ${role==='worker' ? renderClientBar() : ''}
+  <div class="tabs">
+    ${tabs.map(t=>`<button class="tab${activeTab===t.id?' active':''}" onclick="switchTab('${t.id}')">${I[t.icon]||''}${t.label}</button>`).join('')}
+  </div>
+  <div id="panel"></div>`;
+  renderPanel();
+}
+
+function renderClientBar() {
+  return `<div class="client-bar">
+    <label for="cSel">${I.users} Client:</label>
+    <select id="cSel" onchange="switchClient(this.value)">
+      ${appState.clients.map(c=>`<option value="${c.id}"${c.id===appState.activeClientId?' selected':''}>${c.name}</option>`).join('')}
+    </select>
+    <button class="add-btn" onclick="openAddClient()">+ Add</button>
+  </div>`;
+}
+
+function switchClient(id) { appState.activeClientId=id; saveState(); renderMain(); }
+function switchTab(id) { activeTab=id; renderPanel(); document.querySelector('.tab.active')?.scrollIntoView({block:'nearest'}); }
+
+function renderPanel() {
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  const map = { dashboard:dashboardHTML, appointments:appointmentsHTML, notes:notesHTML, history:historyHTML, manage:manageHTML };
+  panel.innerHTML = (map[activeTab] || (()=>''))();
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.textContent.trim()===({dashboard:'Home',appointments:'Appointments',notes:'Notes',history:'History',manage:'Manage'}[activeTab]||'')));
+  bindEvents();
+}
+
+// ── DASHBOARD ──
+function dashboardHTML() {
+  const cl = client();
+  const left = cl.mhpTotal - cl.mhpUsed;
+  const fLeft = cl.fineTotal - cl.finePaid;
+  const mPct = Math.min(100, Math.round((cl.mhpUsed/cl.mhpTotal)*100));
+  const fPct = cl.fineTotal > 0 ? Math.min(100, Math.round((cl.finePaid/cl.fineTotal)*100)) : 0;
+  const now = Date.now();
+  const upcoming = cl.appointments.filter(a=>a.status!=='cancelled'&&new Date(a.date+'T'+a.time)>=now).sort((a,b)=>new Date(a.date+'T'+a.time)-new Date(b.date+'T'+b.time));
+  const next = upcoming[0]||null;
+  const du = next ? daysUntil(next.date, next.time) : null;
+
+  let nextHtml = `<div class="empty">${I.calOff}<p>No upcoming appointments</p></div>`;
+  if (next) {
+    const {day,mon} = fmtDateBox(next.date);
+    nextHtml = `
+    ${du<=3?`<div class="alert alert-amber">${I.alert}<span>Session in ${du} day${du!==1?'s':''} — send a reminder from the Appointments tab</span></div>`:''}
+    <div class="appt-item" style="border:none;padding:0">
+      <div class="date-box"><div class="date-day">${day}</div><div class="date-mon">${mon}</div></div>
+      <div class="appt-meta">
+        <div class="appt-time">${next.time} — ${next.type}</div>
+        <div class="appt-type" style="margin-top:3px">${fmtDate(next.date)} &nbsp;<span class="pill ${du===0?'pill-today':du<0?'pill-past':'pill-up'}">${du===0?'Today':du<0?'Past':'In '+du+'d'}</span></div>
+        ${next.notes?`<div class="appt-note-text">${next.notes}</div>`:''}
+      </div>
+    </div>`;
+  }
+
+  const lastNote = cl.notes[cl.notes.length-1]||null;
+  return `
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="stat-lbl">MHP sessions left</div>
+      <div class="stat-val blue">${left}</div>
+      <div class="stat-bar"><div class="stat-fill fill-b" style="width:${mPct}%"></div></div>
+      <div class="stat-sub">${cl.mhpUsed} of ${cl.mhpTotal} used</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-lbl">Fines paid off</div>
+      <div class="stat-val green">$${cl.finePaid.toLocaleString()}</div>
+      <div class="stat-bar"><div class="stat-fill fill-g" style="width:${fPct}%"></div></div>
+      <div class="stat-sub">$${fLeft.toLocaleString()} remaining</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">${I.calendar}Next appointment</div>
+      ${next?`<button class="btn info" onclick="switchTab('appointments')">${I.calendar}All</button>`:''}
+    </div>
+    ${nextHtml}
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">${I.message}Latest note</div>
+      <button class="btn info" onclick="switchTab('notes')">${I.message}Open</button>
+    </div>
+    ${lastNote?`<div class="note-bubble ${lastNote.role==='worker'?'nb-w':lastNote.role==='system'?'nb-sys':'nb-c'}" style="max-width:100%">
+      <div class="note-sender ${lastNote.role==='worker'?'ns-w':'ns-c'}">${lastNote.role==='worker'?appState.workerName:lastNote.role==='system'?'System':cl.name}</div>
+      ${lastNote.text}</div>`
+    :`<div class="empty" style="padding:.75rem 0">${I.msgOff}<p>No notes yet</p></div>`}
+  </div>`;
+}
+
+// ── APPOINTMENTS ──
+function appointmentsHTML() {
+  const cl = client();
+  const sorted = [...cl.appointments].sort((a,b)=>new Date(a.date+'T'+a.time)-new Date(b.date+'T'+b.time));
+  const upcoming = sorted.filter(a=>a.status!=='cancelled');
+  const cancelled = sorted.filter(a=>a.status==='cancelled');
+
+  function apptRow(a) {
+    const {day,mon} = fmtDateBox(a.date);
+    const du = daysUntil(a.date, a.time);
+    const pillCls = a.status==='cancelled'?'pill-cancelled':du<0?'pill-past':du===0?'pill-today':'pill-up';
+    const pillTxt = a.status==='cancelled'?'Cancelled':du<0?'Past':du===0?'Today':`In ${du}d`;
+    return `<div class="appt-item">
+      <div class="date-box"><div class="date-day">${day}</div><div class="date-mon">${mon}</div></div>
+      <div class="appt-meta">
+        <div class="appt-time">${a.time} — ${a.type}</div>
+        <div class="appt-type" style="margin-top:3px">${fmtDate(a.date)} <span class="pill ${pillCls}">${pillTxt}</span></div>
+        ${a.notes?`<div class="appt-note-text">${a.notes}</div>`:''}
+      </div>
+      ${a.status!=='cancelled'?`<div class="appt-actions">
+        ${role==='worker'?`<button class="btn info" onclick="openReminder('${a.id}')">${I.bell}</button>`:''}
+        <button class="btn" onclick="openReschedule('${a.id}')">${I.calendar}Reschedule</button>
+        ${role==='worker'?`<button class="btn danger" onclick="cancelAppt('${a.id}')">&times; Cancel</button>`:''}
+      </div>`:''}
+    </div>`;
+  }
+
+  return `
+  ${role==='worker'?`<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="btn-primary" id="newApptBtn">${I.plus}New appointment</button>
+  </div>`:''}
+  <div class="card">
+    <div class="card-title" style="margin-bottom:.875rem">${I.calendar}Upcoming sessions</div>
+    ${upcoming.length?upcoming.map(apptRow).join(''):`<div class="empty">${I.calOff}<p>No upcoming appointments</p></div>`}
+  </div>
+  ${cancelled.length?`<div class="card">
+    <div class="card-title" style="margin-bottom:.875rem">${I.calOff}Cancelled</div>
+    ${cancelled.map(apptRow).join('')}
+  </div>`:''}`;
+}
+
+// ── NOTES ──
+function notesHTML() {
+  const cl = client();
+  return `<div class="card">
+    <div class="card-hdr"><div class="card-title">${I.message}Shared session notes</div></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6">Leave topics, questions, or updates for your next session. Both you and your ${role==='worker'?'client':'caseworker'} can read these.</p>
+    <div class="note-thread">
+      ${cl.notes.length?cl.notes.map(n=>{
+        if(n.role==='system') return `<div style="display:flex;flex-direction:column;align-items:center"><div class="note-bubble nb-sys">${n.text}<div class="note-ts">${fmtTs(n.ts)}</div></div></div>`;
+        return `<div style="display:flex;flex-direction:column">
+          <div class="note-bubble ${n.role==='worker'?'nb-w':'nb-c'}">
+            <div class="note-sender ${n.role==='worker'?'ns-w':'ns-c'}">${n.role==='worker'?appState.workerName:cl.name}</div>
+            ${n.text}<div class="note-ts">${fmtTs(n.ts)}</div>
+          </div></div>`;
+      }).join(''):`<div class="empty">${I.msgOff}<p>No notes yet — start the conversation</p></div>`}
+    </div>
+    <div class="divider"></div>
+    <div class="form-row">
+      <label class="form-label" for="noteIn">Add a note</label>
+      <textarea class="form-input" id="noteIn" placeholder="Something to discuss, a question, or an update..."></textarea>
+    </div>
+    <button class="btn-primary" id="sendNoteBtn">${I.send}Send note</button>
+  </div>`;
+}
+
+// ── HISTORY ──
+function historyHTML() {
+  const cl = client();
+  const types = ['all','appointment','session','note','reminder','system'];
+  const filtered = histFilter==='all' ? cl.history : cl.history.filter(h=>h.type===histFilter);
+  return `<div class="card">
+    <div class="card-hdr"><div class="card-title">${I.history}Session history</div></div>
+    <div class="filter-row">
+      ${types.map(t=>`<button class="chip${histFilter===t?' on':''}" onclick="setHistFilter('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}
+    </div>
+    ${filtered.length?filtered.map(h=>`
+    <div class="hist-item">
+      <div class="hist-dot hd-${h.color||'blue'}"></div>
+      <div><div class="hist-text">${h.text}</div><div class="hist-ts">${fmtTs(h.ts)}</div></div>
+    </div>`).join(''):`<div class="empty">${I.history}<p>No entries yet</p></div>`}
+  </div>`;
+}
+function setHistFilter(f) { histFilter=f; renderPanel(); }
+
+// ── MANAGE ──
+function manageHTML() {
+  const cl = client();
+  return `
+  <div class="card">
+    <div class="card-title" style="margin-bottom:.875rem">${I.brain}Mental Health Plan</div>
+    <div class="form-row-2">
+      <div class="form-row"><label class="form-label" for="mhpT">Total sessions</label><input class="form-input" type="number" id="mhpT" value="${cl.mhpTotal}" min="1" max="40"></div>
+      <div class="form-row"><label class="form-label" for="mhpU">Sessions used</label><input class="form-input" type="number" id="mhpU" value="${cl.mhpUsed}" min="0"></div>
+    </div>
+    <button class="btn-primary" id="saveMhpBtn">${I.check}Save MHP</button>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:.875rem">${I.receipt}Victoria Fines Work</div>
+    <div class="form-row-2">
+      <div class="form-row"><label class="form-label" for="finT">Total fine ($)</label><input class="form-input" type="number" id="finT" value="${cl.fineTotal}" min="0"></div>
+      <div class="form-row"><label class="form-label" for="finP">Amount paid ($)</label><input class="form-input" type="number" id="finP" value="${cl.finePaid}" min="0"></div>
+    </div>
+    <button class="btn-primary" id="saveFineBtn">${I.check}Save balance</button>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:.875rem">${I.bell}Reminder webhook</div>
+    <p class="webhook-info">Paste a Zapier, Make, or Twilio/SendGrid webhook URL here to enable SMS/email reminders from the Appointments tab.</p>
+    <div class="form-row" style="margin-top:10px"><label class="form-label" for="hookUrl">Webhook URL</label><input class="form-input" id="hookUrl" placeholder="https://hooks.zapier.com/..." value="${appState.webhookUrl||''}"></div>
+    <button class="btn-primary" id="saveHookBtn">${I.check}Save webhook</button>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:.875rem">${I.user}Client details</div>
+    <div class="form-row"><label class="form-label" for="cName">Client name</label><input class="form-input" id="cName" value="${cl.name}"></div>
+    <div class="form-row"><label class="form-label" for="cEmail">Email</label><input class="form-input" type="email" id="cEmail" value="${cl.email||''}"></div>
+    <div class="form-row"><label class="form-label" for="cPhone">Phone</label><input class="form-input" id="cPhone" value="${cl.phone||''}"></div>
+    <div class="form-row"><label class="form-label" for="wName">Caseworker name</label><input class="form-input" id="wName" value="${appState.workerName}"></div>
+    <div class="btn-row">
+      <button class="btn-primary" id="saveNamesBtn">${I.check}Save details</button>
+      <button class="btn danger" id="resetPinBtn">Reset PIN</button>
+    </div>
+  </div>`;
+}
+
+// ── BIND EVENTS ──
+function bindEvents() {
+  const b = (id,fn) => { const el=document.getElementById(id); if(el) el.addEventListener('click',fn); };
+  b('newApptBtn', openNewAppt);
+  b('sendNoteBtn', async () => {
+    const v = document.getElementById('noteIn')?.value?.trim();
+    if (!v) return;
+    const cl = client();
+    cl.notes.push({ id:uid(), role, text:v, ts:new Date().toISOString() });
+    addHistory(cl,'note','blue',`${role==='worker'?appState.workerName:cl.name} added a note`);
+    await saveState(); renderPanel(); toast('Note sent', 'green');
+  });
+  b('saveMhpBtn', async () => {
+    const cl=client();
+    cl.mhpTotal=parseInt(document.getElementById('mhpT')?.value)||cl.mhpTotal;
+    cl.mhpUsed=Math.min(parseInt(document.getElementById('mhpU')?.value)||cl.mhpUsed, cl.mhpTotal);
+    addHistory(cl,'session','green',`MHP updated: ${cl.mhpUsed} of ${cl.mhpTotal} sessions used`);
+    await saveState(); toast('MHP saved', 'green');
+  });
+  b('saveFineBtn', async () => {
+    const cl=client();
+    cl.fineTotal=parseFloat(document.getElementById('finT')?.value)||cl.fineTotal;
+    cl.finePaid=Math.min(parseFloat(document.getElementById('finP')?.value)||cl.finePaid, cl.fineTotal);
+    addHistory(cl,'session','green',`Fines updated: $${cl.finePaid.toLocaleString()} paid of $${cl.fineTotal.toLocaleString()}`);
+    await saveState(); toast('Balance saved', 'green');
+  });
+  b('saveHookBtn', async () => {
+    appState.webhookUrl=document.getElementById('hookUrl')?.value?.trim()||'';
+    await saveState(); toast('Webhook saved', 'green');
+  });
+  b('saveNamesBtn', async () => {
+    const cl=client();
+    cl.name=document.getElementById('cName')?.value?.trim()||cl.name;
+    cl.email=document.getElementById('cEmail')?.value?.trim()||'';
+    cl.phone=document.getElementById('cPhone')?.value?.trim()||'';
+    appState.workerName=document.getElementById('wName')?.value?.trim()||appState.workerName;
+    await saveState(); renderMain(); toast('Details saved', 'green');
+  });
+  b('resetPinBtn', async () => {
+    if (confirm('Reset your PIN? You will set a new one on next login.')) {
+      appState.pins[role]=null; await saveState(); toast('PIN reset');
+    }
+  });
+}
+
+// ── MODALS ──
+function showModal(html) {
+  closeModal();
+  const ov=document.createElement('div');
+  ov.className='modal-overlay'; ov.id='modal';
+  ov.innerHTML=`<div class="modal">${html}</div>`;
+  ov.addEventListener('click', e=>{ if(e.target===ov) closeModal(); });
+  document.body.appendChild(ov);
+}
+function closeModal() { const m=document.getElementById('modal'); if(m) m.remove(); }
+
+function openNewAppt() {
+  const today = new Date().toISOString().split('T')[0];
+  showModal(`<div class="modal-title">Schedule new appointment</div>
+    <div class="form-row"><label class="form-label" for="mDate">Date</label><input class="form-input" type="date" id="mDate" min="${today}"></div>
+    <div class="form-row"><label class="form-label" for="mTime">Time</label><input class="form-input" type="time" id="mTime" value="10:00"></div>
+    <div class="form-row"><label class="form-label" for="mType">Session type</label>
+      <select class="form-input" id="mType">
+        <option>Mental Health Plan</option><option>Victoria Fines Work</option><option>General check-in</option><option>Initial assessment</option>
+      </select></div>
+    <div class="form-row"><label class="form-label" for="mNotes">Notes (optional)</label><input class="form-input" id="mNotes" placeholder="e.g. Bring GP referral"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveNewAppt()">${I.check}Schedule</button>
+    </div>`);
+}
+async function saveNewAppt() {
+  const date=document.getElementById('mDate')?.value;
+  const time=document.getElementById('mTime')?.value;
+  const type=document.getElementById('mType')?.value;
+  const notes=document.getElementById('mNotes')?.value||'';
+  if (!date||!time) { toast('Please set date and time','red'); return; }
+  const cl=client();
+  cl.appointments.push({ id:uid(), date, time, type, status:'upcoming', notes });
+  cl.notes.push({ id:uid(), role:'system', text:`Appointment scheduled: ${type} on ${fmtDate(date)} at ${time}`, ts:new Date().toISOString() });
+  addHistory(cl,'appointment','blue',`Appointment scheduled: ${type} on ${fmtDate(date)} at ${time}`);
+  await saveState(); closeModal(); switchTab('appointments'); toast('Appointment scheduled','green');
+}
+
+function openReschedule(id) {
+  const cl=client(); const a=cl.appointments.find(x=>x.id===id); if(!a) return;
+  const today=new Date().toISOString().split('T')[0];
+  showModal(`<div class="modal-title">Reschedule appointment</div>
+    <div class="form-row"><label class="form-label">Session type</label><div style="font-size:14px;font-weight:600">${a.type}</div></div>
+    <div class="form-row"><label class="form-label" for="mDate">New date</label><input class="form-input" type="date" id="mDate" value="${a.date}" min="${today}"></div>
+    <div class="form-row"><label class="form-label" for="mTime">New time</label><input class="form-input" type="time" id="mTime" value="${a.time}"></div>
+    <div class="form-row"><label class="form-label" for="mNotes">Reason (optional)</label><input class="form-input" id="mNotes" placeholder="Reason for rescheduling..."></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveReschedule('${id}')">${I.check}Confirm</button>
+    </div>`);
+}
+async function saveReschedule(id) {
+  const cl=client(); const a=cl.appointments.find(x=>x.id===id); if(!a) return;
+  const date=document.getElementById('mDate')?.value;
+  const time=document.getElementById('mTime')?.value;
+  const reason=document.getElementById('mNotes')?.value||'';
+  if (!date||!time) { toast('Please set date and time','red'); return; }
+  const old=a.date; a.date=date; a.time=time;
+  const txt=`Rescheduled from ${fmtDate(old)} to ${fmtDate(date)} at ${time}${reason?' — '+reason:''}`;
+  cl.notes.push({ id:uid(), role:'system', text:txt, ts:new Date().toISOString() });
+  addHistory(cl,'appointment','amber',txt);
+  await saveState(); closeModal(); renderPanel(); toast('Appointment rescheduled','green');
+}
+
+async function cancelAppt(id) {
+  if (!confirm('Cancel this appointment? Both you and your client will see this.')) return;
+  const cl=client(); const a=cl.appointments.find(x=>x.id===id); if(!a) return;
+  a.status='cancelled';
+  const txt=`Appointment on ${fmtDate(a.date)} at ${a.time} was cancelled`;
+  cl.notes.push({ id:uid(), role:'system', text:txt, ts:new Date().toISOString() });
+  addHistory(cl,'appointment','red',txt);
+  await saveState(); renderPanel(); toast('Appointment cancelled');
+}
+
+function openAddClient() {
+  showModal(`<div class="modal-title">Add new client</div>
+    <div class="form-row"><label class="form-label" for="mName">Full name</label><input class="form-input" id="mName" placeholder="Client full name"></div>
+    <div class="form-row"><label class="form-label" for="mEmail">Email</label><input class="form-input" type="email" id="mEmail" placeholder="client@email.com"></div>
+    <div class="form-row"><label class="form-label" for="mPhone">Phone</label><input class="form-input" id="mPhone" placeholder="04XX XXX XXX"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveNewClient()">${I.plus}Add client</button>
+    </div>`);
+}
+async function saveNewClient() {
+  const name=document.getElementById('mName')?.value?.trim();
+  if (!name) { toast('Please enter a name','red'); return; }
+  const nc={id:uid(),name,email:document.getElementById('mEmail')?.value?.trim()||'',phone:document.getElementById('mPhone')?.value?.trim()||'',
+    mhpTotal:10,mhpUsed:0,fineTotal:0,finePaid:0,appointments:[],notes:[],
+    history:[{id:uid(),type:'system',color:'blue',text:`Client ${name} added`,ts:new Date().toISOString()}]};
+  appState.clients.push(nc); appState.activeClientId=nc.id;
+  await saveState(); closeModal(); renderMain(); toast(`${name} added`,'green');
+}
+
+function openReminder(id) {
+  const cl=client(); const a=cl.appointments.find(x=>x.id===id); if(!a) return;
+  const hasHook=!!appState.webhookUrl;
+  showModal(`<div class="modal-title">${I.bell} Send reminder</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Send an appointment reminder to <strong>${cl.name}</strong></p>
+    <div class="form-row"><label class="form-label">Appointment</label><div style="font-size:14px;font-weight:600">${a.type} — ${fmtDate(a.date)} at ${a.time}</div></div>
+    <div class="form-row"><label class="form-label">Contact</label><div style="font-size:13px">${cl.email||'No email set'} &nbsp;|&nbsp; ${cl.phone||'No phone set'}</div></div>
+    <div class="form-row"><label class="form-label" for="mMsg">Custom message (optional)</label><textarea class="form-input" id="mMsg" placeholder="Add a personal note to the reminder..."></textarea></div>
+    ${!hasHook?`<div class="alert alert-amber">${I.alert}<span>No webhook configured yet. Go to Manage → Reminder webhook to set one up. For now you can copy the reminder text.</span></div>`:''}
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      ${hasHook
+        ?`<button class="btn-primary" onclick="sendReminder('${id}')">${I.send}Send reminder</button>`
+        :`<button class="btn info" onclick="copyReminder('${id}')">${I.copy}Copy text</button>`}
+    </div>`);
+}
+async function sendReminder(id) {
+  const cl=client(); const a=cl.appointments.find(x=>x.id===id); if(!a) return;
+  const msg=document.getElementById('mMsg')?.value||'';
+  const payload={clientName:cl.name,clientEmail:cl.email,clientPhone:cl.phone,appointmentType:a.type,appointmentDate:fmtDate(a.date),appointmentTime:a.time,caseworker:appState.workerName,customMessage:msg,timestamp:new Date().toISOString()};
+  try {
+    await fetch(appState.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    addHistory(client(),'reminder','amber',`Reminder sent to ${cl.name} for ${fmtDate(a.date)} at ${a.time}`);
+    await saveState(); closeModal(); toast('Reminder sent','green');
+  } catch(e) { toast('Webhook failed — check the URL in Manage','red'); }
+}
+async function copyReminder(id) {
+  const cl=client(); const a=cl.appointments.find(x=>x.id===id); if(!a) return;
+  const msg=document.getElementById('mMsg')?.value||'';
+  const text=`Hi ${cl.name},\n\nThis is a reminder from ${appState.workerName} about your upcoming appointment:\n\n${a.type}\n${fmtDate(a.date)} at ${a.time}${msg?'\n\n'+msg:''}`;
+  try { await navigator.clipboard.writeText(text); toast('Copied to clipboard','green'); } catch(e) { toast('Copy failed','red'); }
+  addHistory(cl,'reminder','amber',`Reminder text copied for ${cl.name}`);
+  await saveState(); closeModal();
+}
+
+// ── PDF EXPORT ──
+function exportPDF() {
+  const cl=client();
+  const fLeft=cl.fineTotal-cl.finePaid;
+  const upcoming=cl.appointments.filter(a=>a.status!=='cancelled').sort((a,b)=>new Date(a.date+'T'+a.time)-new Date(b.date+'T'+b.time));
+  const recentNotes=cl.notes.slice(-10);
+  const w=window.open('','_blank');
+  if(!w){toast('Allow pop-ups to export PDF','red');return;}
+  w.document.write(`<!DOCTYPE html><html><head><title>Session Summary — ${cl.name}</title><style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111;padding:2cm;font-size:13px;line-height:1.6}
+    h1{font-size:22px;font-weight:700;margin-bottom:4px}
+    .meta{color:#555;font-size:13px;margin-bottom:2rem;padding-bottom:1rem;border-bottom:2px solid #111}
+    h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:1.75rem 0 .75rem;padding-bottom:4px;border-bottom:1px solid #ddd;color:#333}
+    .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+    .stat{background:#f5f5f5;padding:.875rem 1rem;border-radius:6px;border-left:3px solid #185FA5}
+    .stat.green{border-left-color:#0F6E56}
+    .stat-l{font-size:11px;color:#666;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+    .stat-v{font-size:22px;font-weight:700}
+    .stat-s{font-size:11px;color:#888;margin-top:3px}
+    .appt{display:flex;gap:12px;padding:.625rem 0;border-bottom:1px solid #eee;align-items:flex-start}
+    .appt:last-child{border:none}
+    .appt-d{font-weight:600;min-width:160px;font-size:13px}
+    .note{padding:.625rem 0;border-bottom:1px solid #eee}
+    .note:last-child{border:none}
+    .note-s{font-size:11px;color:#555;margin-bottom:3px;font-weight:600}
+    .footer{margin-top:2rem;padding-top:1rem;border-top:1px solid #ddd;font-size:11px;color:#999;display:flex;justify-content:space-between}
+    @media print{body{padding:1.5cm}@page{margin:1.5cm}}
+  </style></head><body>
+  <h1>Session Summary</h1>
+  <div class="meta">${cl.name} &nbsp;·&nbsp; Caseworker: ${appState.workerName} &nbsp;·&nbsp; Generated: ${new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}</div>
+  <h2>Program status</h2>
+  <div class="stat-row">
+    <div class="stat"><div class="stat-l">MHP sessions remaining</div><div class="stat-v">${cl.mhpTotal-cl.mhpUsed}</div><div class="stat-s">${cl.mhpUsed} of ${cl.mhpTotal} used</div></div>
+    <div class="stat green"><div class="stat-l">Victoria Fines Work</div><div class="stat-v">$${cl.finePaid.toLocaleString()}</div><div class="stat-s">$${fLeft.toLocaleString()} remaining of $${cl.fineTotal.toLocaleString()}</div></div>
+  </div>
+  <h2>Upcoming appointments</h2>
+  ${upcoming.length?upcoming.map(a=>`<div class="appt"><div class="appt-d">${fmtDate(a.date)} at ${a.time}</div><div>${a.type}${a.notes?' — '+a.notes:''}</div></div>`).join(''):'<p style="color:#888;font-size:13px">No upcoming appointments</p>'}
+  <h2>Shared notes (last 10)</h2>
+  ${recentNotes.length?recentNotes.map(n=>`<div class="note">
+    <div class="note-s">${n.role==='system'?'System':n.role==='worker'?appState.workerName:cl.name} &nbsp;·&nbsp; ${fmtTs(n.ts)}</div>
+    <div>${n.text}</div></div>`).join(''):'<p style="color:#888;font-size:13px">No notes</p>'}
+  <div class="footer"><span>ConnectCase — Confidential</span><span>Printed: ${new Date().toLocaleString('en-AU')}</span></div>
+  <script>window.onload=()=>{window.print();}<\/script></body></html>`);
+  w.document.close();
+}
+
+// ── LOGOUT ──
+function doLogout() { role=null; activeTab='dashboard'; render(); }
+
+// ── BOOT ──
+loadState().then(() => { subscribeRealtime(); render(); });
+</script>
+</body>
+</html>
